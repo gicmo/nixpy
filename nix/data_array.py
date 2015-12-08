@@ -114,7 +114,7 @@ class DataSetMixin(DataSet):
         if len(index) < 1:
             return np.array(self)
         # if we got to here we have a tuple with len >= 1
-        count, offset, shape = self.__tuple_to_count_offset_shape(index)
+        count, offset, shape = self.__index_to_count_offset_shape(index)
         raw = np.empty(shape, dtype=self.dtype)
 
         self._read_data(raw, count, offset)
@@ -127,7 +127,7 @@ class DataSetMixin(DataSet):
             shape = self.shape
             count, offset = shape, tuple([0]*len(shape))
         else:
-            count, offset, _ = self.__tuple_to_count_offset_shape(index)
+            count, offset, _ = self.__index_to_count_offset_shape(index)
 
         # NB: np.ascontiguousarray does not copy the array if it is
         # already in c-contiguous form
@@ -274,7 +274,7 @@ class DataSetMixin(DataSet):
         size = len(shape) - len(index) + to_replace
         return tuple([None] * size)
 
-    def __tuple_to_count_offset_shape(self, index):
+    def __index_to_count_offset_shape(self, index):
         # precondition: type(index) == tuple and len(index) >= 1
         fill_none = self.__fill_none
         shape = self.shape
