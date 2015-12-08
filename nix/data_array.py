@@ -114,7 +114,9 @@ class DataSetMixin(DataSet):
         if len(index) < 1:
             return np.array(self)
         # if we got to here we have a tuple with len >= 1
-        count, offset, shape = self.__index_to_count_offset_shape(index)
+        shape = self.shape
+        index = self.__reshape_index(index)
+        count, offset, shape = self.__index_to_count_offset(index, shape)
         raw = np.empty(shape, dtype=self.dtype)
 
         self._read_data(raw, count, offset)
@@ -123,11 +125,12 @@ class DataSetMixin(DataSet):
 
     def __setitem__(self, index, value):
         index = self.__index_to_tuple(index)
+        shape = self.shape
         if len(index) < 1:
-            shape = self.shape
             count, offset = shape, tuple([0]*len(shape))
         else:
-            count, offset, _ = self.__index_to_count_offset_shape(index)
+            index = self.__reshape_index(index)
+            count, offset, _ = self.__index_to_count_offset(index, shape)
 
         # NB: np.ascontiguousarray does not copy the array if it is
         # already in c-contiguous form
@@ -274,7 +277,7 @@ class DataSetMixin(DataSet):
         size = len(shape) - len(index) + to_replace
         return tuple([None] * size)
 
-    def __index_to_count_offset_shape(self, index):
+    def __reshape_index(self, index):
         # precondition: type(index) == tuple and len(index) >= 1
         fill_none = self.__fill_none
         shape = self.shape
@@ -296,7 +299,12 @@ class DataSetMixin(DataSet):
         # in python3 map does not work with None therefore if
         # len(shape) != len(index) we wont get the expected
         # result. We therefore need to fill up the missing values
-        index = index + fill_none(shape, index, to_replace=0)
+        return index + fill_none(shape, index, to_replace=0)
+
+
+    def __index_to_count_offset(self, index, shape):
+        # precondition: index is 'reshaped' to match index
+        #  i.e. len(index) == len(shape)
 
         completed = list(map(self.__complete_slices, shape, index))
         combined = list(map(lambda s: (s.start, s.stop), completed))
