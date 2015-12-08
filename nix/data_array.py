@@ -115,7 +115,7 @@ class DataSetMixin(DataSet):
             return np.array(self)
         # if we got to here we have a tuple with len >= 1
         shape = self.shape
-        index = self.__reshape_index(index)
+        index = self.__reshape_index(index, shape)
         count, offset, shape = self.__index_to_count_offset(index, shape)
         raw = np.empty(shape, dtype=self.dtype)
 
@@ -129,7 +129,7 @@ class DataSetMixin(DataSet):
         if len(index) < 1:
             count, offset = shape, tuple([0]*len(shape))
         else:
-            index = self.__reshape_index(index)
+            index = self.__reshape_index(index, shape)
             count, offset, _ = self.__index_to_count_offset(index, shape)
 
         # NB: np.ascontiguousarray does not copy the array if it is
@@ -277,10 +277,10 @@ class DataSetMixin(DataSet):
         size = len(shape) - len(index) + to_replace
         return tuple([None] * size)
 
-    def __reshape_index(self, index):
+    @classmethod
+    def __reshape_index(cls, index, shape):
         # precondition: type(index) == tuple and len(index) >= 1
-        fill_none = self.__fill_none
-        shape = self.shape
+        fill_none = cls.__fill_none
 
         if index[0] is Ellipsis:
             index = fill_none(shape, index) + index[1:]
