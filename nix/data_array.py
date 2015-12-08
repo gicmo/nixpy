@@ -116,7 +116,15 @@ class DataSetMixin(DataSet):
         # if we got to here we have a tuple with len >= 1
         shape = self.shape
         index = self.__reshape_index(index, shape)
-        count, offset, shape = self.__index_to_count_offset(index, shape)
+        count, offset = self.__index_to_count_offset(index, shape)
+
+        # drop all indices from count that came from single ints
+        # NB: special case when we only have ints, e.g. (int, ) then
+        # we get back the empty tuple and this is what we want,
+        # because it indicates a scalar result
+        squeezed = map(lambda i, c: c if type(i) != int else None, index, count)
+        shape = list(filter(lambda x: x is not None, squeezed))
+
         raw = np.empty(shape, dtype=self.dtype)
 
         self._read_data(raw, count, offset)
@@ -130,7 +138,7 @@ class DataSetMixin(DataSet):
             count, offset = shape, tuple([0]*len(shape))
         else:
             index = self.__reshape_index(index, shape)
-            count, offset, _ = self.__index_to_count_offset(index, shape)
+            count, offset = self.__index_to_count_offset(index, shape)
 
         # NB: np.ascontiguousarray does not copy the array if it is
         # already in c-contiguous form
@@ -311,14 +319,7 @@ class DataSetMixin(DataSet):
         count = tuple(x[1] - x[0] for x in combined)
         offset = [x for x in zip(*combined)][0]
 
-        # drop all indices from count that came from single ints
-        # NB: special case when we only have ints, e.g. (int, ) then
-        # we get back the empty tuple and this is what we want,
-        # because it indicates a scalar result
-        squeezed = map(lambda i, c: c if type(i) != int else None, index, count)
-        shape = list(filter(lambda x: x is not None, squeezed))
-
-        return count, offset, shape
+        return count, offset
 
 
 inject((DataArray,), dict(DataArrayMixin.__dict__))
